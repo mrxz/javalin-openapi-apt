@@ -5,6 +5,6 @@ import io.swagger.v3.oas.models.media.Schema;
 
 public interface SchemaFactory {
 
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry);
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry);
 
 }

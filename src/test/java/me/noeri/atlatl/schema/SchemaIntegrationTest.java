@@ -22,6 +22,7 @@ public class SchemaIntegrationTest extends TestBase {
 		"NumericProperties",
 		"BoxedPrimitives",
 		"Collections",
+		"Enum",
 	})
 	public void shouldGenerateCorrectSchema(String testCase) throws JsonProcessingException {
 		ParseResult<CompilationUnit> cu = parser.parse(getResource("schemas/" + testCase + ".java.txt"));

@@ -1,17 +1,22 @@
 type: object
 properties:
+  booleanValue:
+    type: boolean
+  byteValue:
+    type: number
+  characterValue:
+    maxLength: 1
+    type: string
+  floatValue:
+    type: number
   integerValue:
     type: number
   longValue:
     type: number
-  doubleValue:
-    type: number
-  floatValue:
-    type: number
   shortValue:
     type: number
-  booleanValue:
-    type: boolean
+  doubleValue:
+    type: number
   stringValue:
     type: string
 

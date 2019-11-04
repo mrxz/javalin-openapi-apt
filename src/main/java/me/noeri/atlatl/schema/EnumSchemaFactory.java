@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class EnumSchemaFactory implements SchemaFactory {
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		if(type.isReferenceType() && type.asReferenceType().getTypeDeclaration().isEnum()) {
 			List<String> values = type.asReferenceType().getTypeDeclaration().asEnum().getEnumConstants()
 					.stream()

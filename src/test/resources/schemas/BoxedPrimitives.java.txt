@@ -2,13 +2,14 @@ package schemas;
 
 public class BoxedPrimitives {
 
+	public Boolean booleanValue;
+	public Byte byteValue;
+	public Character characterValue;
+	public Float floatValue;
 	public Integer integerValue;
 	public Long longValue;
-	public Double doubleValue;
-	public Float floatValue;
 	public Short shortValue;
-
-	public Boolean booleanValue;
+	public Double doubleValue;
 
 	// Strictly speaking not a boxed primitive...
 	public String stringValue;

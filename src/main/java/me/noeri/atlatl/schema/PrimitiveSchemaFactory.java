@@ -9,7 +9,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 public class PrimitiveSchemaFactory implements SchemaFactory {
 
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		if(type.isPrimitive()) {
 			switch(type.asPrimitive()) {
 			case BOOLEAN:

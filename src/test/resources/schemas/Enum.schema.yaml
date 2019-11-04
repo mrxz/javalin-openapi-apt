@@ -1,0 +1,15 @@
+type: object
+properties:
+  enumValue:
+    type: string
+    enum:
+    - FIRST
+    - SECOND
+    - THIRD
+  complexEnumValue:
+    type: string
+    enum:
+    - FIRST
+    - SECOND
+    - THIRD
+

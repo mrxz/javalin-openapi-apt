@@ -15,7 +15,7 @@ public class MapSchemaFactory implements SchemaFactory {
 	}
 
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		if(TypeUtils.isAssignable(type, mapType)) {
 			ResolvedType elementType = type.asReferenceType().getTypeParametersMap().get(1).b;
 			Schema<?> elementSchema = registry.getSchemaOrReferenceFor(elementType);

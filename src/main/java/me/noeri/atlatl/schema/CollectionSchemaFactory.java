@@ -15,7 +15,7 @@ public class CollectionSchemaFactory implements SchemaFactory {
 	}
 
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		if(TypeUtils.isAssignable(type, collectionType)) {
 			ResolvedType elementType = type.asReferenceType().typeParametersValues().get(0);
 			Schema<?> elementSchema = registry.getSchemaOrReferenceFor(elementType);

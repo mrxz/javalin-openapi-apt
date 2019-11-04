@@ -29,7 +29,7 @@ public class BoxedPrimitivesSchemaFactory implements SchemaFactory {
 	}
 
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		return lookup.entrySet().stream()
 			.filter(entry -> TypeUtils.isAssignable(type, entry.getKey()))
 			.findFirst()

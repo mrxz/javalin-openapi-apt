@@ -1,0 +1,20 @@
+package schemas;
+
+public class EnumHolder {
+
+	private Enum enumValue;
+	private ComplexEnum complexEnumValue;
+
+	public enum Enum {
+		FIRST,
+		SECOND,
+		THIRD
+	}
+
+	public enum ComplexEnum {
+		FIRST("first"), SECOND("second"), THIRD("third");
+
+		ComplexEnum(String value) {}
+	}
+
+}

@@ -9,7 +9,7 @@ import io.swagger.v3.oas.models.media.Schema;
 public class ReferenceSchemaFactory implements SchemaFactory {
 
 	@Override
-	public Schema createSchema(ResolvedType type, SchemaRegistry registry) {
+	public Schema<?> createSchema(ResolvedType type, SchemaRegistry registry) {
 		if(type.isReferenceType()) {
 			ObjectSchema schema = new ObjectSchema();
 			for(ResolvedFieldDeclaration field : type.asReferenceType().getTypeDeclaration().getAllFields()) {
