@@ -30,6 +30,7 @@ import me.noeri.atlatl.schema.MapSchemaFactory;
 import me.noeri.atlatl.schema.PrimitiveSchemaFactory;
 import me.noeri.atlatl.schema.ReferenceSchemaFactory;
 import me.noeri.atlatl.schema.SchemaRegistry;
+import me.noeri.atlatl.schema.SchemaRegistryFactory;
 import me.noeri.atlatl.schema.SimpleModelNamingStrategy;
 import me.noeri.atlatl.utils.FileUtils;
 
@@ -46,14 +47,7 @@ public class AstAnalyze {
 			.setSymbolResolver(symbolResolver);
 		this.reporter = reporter;
 		routeAnalyzer = new RouteAnalyzer(typeSolver);
-		schemaRegistry = new SchemaRegistry(new SimpleModelNamingStrategy(),
-				new PrimitiveSchemaFactory(),
-				new BoxedPrimitivesSchemaFactory(typeSolver),
-				new ArraySchemaFactory(),
-				new EnumSchemaFactory(),
-				new CollectionSchemaFactory(typeSolver),
-				new MapSchemaFactory(typeSolver),
-				new ReferenceSchemaFactory());
+		schemaRegistry = SchemaRegistryFactory.createDefaultRegistry(typeSolver);
 		operationParser = new OperationParser(typeSolver, schemaRegistry, reporter);
 	}
 

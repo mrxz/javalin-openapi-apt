@@ -1,0 +1,15 @@
+type: object
+properties:
+  integerList:
+    type: array
+    items:
+      type: number
+  stringLinkedList:
+    type: array
+    items:
+      type: string
+  objectSet:
+    type: array
+    items:
+      type: object
+

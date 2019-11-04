@@ -1,0 +1,11 @@
+package schemas;
+
+public class NumericProperties {
+
+	public int integerValue;
+	public long longValue;
+	public double doubleValue;
+	public float floatValue;
+	public short shortValue;
+
+}

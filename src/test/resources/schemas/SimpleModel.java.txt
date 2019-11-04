@@ -1,0 +1,9 @@
+package schemas;
+
+public class SimpleModel {
+
+	public String name;
+	private int age;
+	protected boolean active;
+
+}

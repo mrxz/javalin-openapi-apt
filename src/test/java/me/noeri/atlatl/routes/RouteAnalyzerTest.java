@@ -6,7 +6,7 @@ import java.util.List;
 import me.noeri.atlatl.TestBase;
 import me.noeri.atlatl.route.Route;
 import me.noeri.atlatl.route.RouteAnalyzer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -18,7 +18,7 @@ public class RouteAnalyzerTest extends TestBase {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void shouldHandleSimpleRoutes() {
-		ParseResult<CompilationUnit> cu = parser.parse(getResource("SimpleRoutes.java.txt"));
+		ParseResult<CompilationUnit> cu = parser.parse(getResource("routes/SimpleRoutes.java.txt"));
 
 		RouteAnalyzer routeAnalyzer = new RouteAnalyzer(typeSolver);
 		List<Route> actual = routeAnalyzer.analyze(cu.getResult().get());
@@ -34,7 +34,7 @@ public class RouteAnalyzerTest extends TestBase {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void shouldHandlePathParams() {
-		ParseResult<CompilationUnit> cu = parser.parse(getResource("PathParams.java.txt"));
+		ParseResult<CompilationUnit> cu = parser.parse(getResource("routes/PathParams.java.txt"));
 
 		RouteAnalyzer routeAnalyzer = new RouteAnalyzer(typeSolver);
 		List<Route> actual = routeAnalyzer.analyze(cu.getResult().get());

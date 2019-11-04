@@ -41,6 +41,10 @@ public class SchemaRegistry {
 
 	public Schema<?> getSchemaOrReferenceFor(ResolvedType type) {
 		Schema<?> schema = getSchemaFor(type);
+		// FIXME: Find a nicer way to handle the java.lang.Object case.
+		if(type.isReferenceType() && type.asReferenceType().getId().equals("java.lang.Object")) {
+			return new ObjectSchema();
+		}
 		if(schema instanceof ObjectSchema) {
 			return new ObjectSchema().$ref("#/components/schemas/" + namingStrategy.convert(type));
 		}

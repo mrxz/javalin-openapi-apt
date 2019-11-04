@@ -1,0 +1,17 @@
+type: object
+properties:
+  integerValue:
+    type: number
+  longValue:
+    type: number
+  doubleValue:
+    type: number
+  floatValue:
+    type: number
+  shortValue:
+    type: number
+  booleanValue:
+    type: boolean
+  stringValue:
+    type: string
+

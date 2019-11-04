@@ -26,9 +26,15 @@ dependencies {
 
     testCompile "org.hamcrest:hamcrest-core:1.3"
     testCompile "org.hamcrest:hamcrest-library:1.3"
-    testCompile "junit:junit:4.13-beta-1"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.6.0-M1"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.6.0-M1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.6.0-M1"
     testCompile("io.javalin:javalin:3.1.0") {
         exclude group: "org.eclipse.jetty"
         exclude group: "org.eclipse.jetty.websocket"
     }
+}
+
+test {
+    useJUnitPlatform()
 }

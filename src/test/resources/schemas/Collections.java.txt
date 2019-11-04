@@ -1,0 +1,13 @@
+package schemas;
+
+import java.util.List;
+import java.util.LinkedList;
+import java.util.Set;
+
+public class Collections {
+
+	public List<Integer> integerList;
+	public LinkedList<String> stringLinkedList;
+	public Set<Object> objectSet;
+
+}
