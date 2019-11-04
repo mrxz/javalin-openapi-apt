@@ -26,4 +26,9 @@ public class Route {
 		return action;
 	}
 
+	@Override
+	public String toString() {
+		return method + " " + path;
+	}
+
 }

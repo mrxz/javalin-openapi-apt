@@ -12,15 +12,23 @@ repositories {
 }
 
 dependencies {
-	compile files("${System.getProperty('java.home')}/../lib/tools.jar")
+    compile files("${System.getProperty('java.home')}/../lib/tools.jar")
 
-	compile "com.github.javaparser:javaparser-core:3.15.3"
-	compile "com.github.javaparser:javaparser-symbol-solver-core:3.15.3"
-	compile "com.github.javaparser:javaparser-symbol-solver-logic:3.15.3"
-	compile "com.github.javaparser:javaparser-symbol-solver-model:3.15.3"
+    compile "com.github.javaparser:javaparser-core:3.15.3"
+    compile "com.github.javaparser:javaparser-symbol-solver-core:3.15.3"
+    compile "com.github.javaparser:javaparser-symbol-solver-logic:3.15.3"
+    compile "com.github.javaparser:javaparser-symbol-solver-model:3.15.3"
     compile "io.swagger.core.v3:swagger-core:2.0.10"
     compile "io.swagger.core.v3:swagger-models:2.0.10"
     compile "com.google.auto.service:auto-service-annotations:1.0-rc6"
 
     annotationProcessor "com.google.auto.service:auto-service:1.0-rc6"
+
+    testCompile "org.hamcrest:hamcrest-core:1.3"
+    testCompile "org.hamcrest:hamcrest-library:1.3"
+    testCompile "junit:junit:4.13-beta-1"
+    testCompile("io.javalin:javalin:3.1.0") {
+        exclude group: "org.eclipse.jetty"
+        exclude group: "org.eclipse.jetty.websocket"
+    }
 }

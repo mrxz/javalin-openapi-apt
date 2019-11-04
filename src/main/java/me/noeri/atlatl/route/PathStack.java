@@ -23,7 +23,7 @@ public class PathStack {
 			pathSegment = pathSegment.substring(1);
 		}
 		if(pathSegment.endsWith("/")) {
-			pathSegment = pathSegment.substring(0, pathSegment.length() - 2);
+			pathSegment = pathSegment.substring(0, pathSegment.length() - 1);
 		}
 
 		for(String part : pathSegment.split("/")) {

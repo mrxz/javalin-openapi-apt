@@ -7,7 +7,6 @@ import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclar
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import java.util.Arrays;
 import java.util.List;
-import me.noeri.atlatl.utils.TypeUtils;
 import me.noeri.atlatl.utils.Visitors;
 
 public class RouteAnalyzer {
@@ -43,5 +42,4 @@ public class RouteAnalyzer {
 			return recurse.apply(stack);
 		}), new PathStack());
 	}
-
 }

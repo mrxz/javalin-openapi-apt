@@ -1,0 +1,27 @@
+package me.noeri.atlatl;
+import static io.javalin.apibuilder.ApiBuilder.delete;
+import static io.javalin.apibuilder.ApiBuilder.get;
+import static io.javalin.apibuilder.ApiBuilder.path;
+import static io.javalin.apibuilder.ApiBuilder.post;
+import static io.javalin.apibuilder.ApiBuilder.put;
+
+import io.javalin.apibuilder.EndpointGroup;
+
+public class SimpleRoutes {
+
+	public static EndpointGroup routes = () -> {
+		path("/first", () -> {
+			get("/second/third", ctx -> {});
+			// Should handle no '/' at the start
+			path("fourth", () -> {
+				delete("/fifth", ctx -> {});
+				// Should strip trailing slash
+				post("/sixth/", ctx -> {});
+				put("/seventh", ctx -> {});
+				// Should handle no path segment
+				get(ctx -> {});
+			});
+		});
+	};
+
+}

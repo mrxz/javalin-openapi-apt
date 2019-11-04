@@ -1,0 +1,23 @@
+package me.noeri.atlatl;
+import static io.javalin.apibuilder.ApiBuilder.delete;
+import static io.javalin.apibuilder.ApiBuilder.get;
+import static io.javalin.apibuilder.ApiBuilder.path;
+import static io.javalin.apibuilder.ApiBuilder.post;
+import static io.javalin.apibuilder.ApiBuilder.put;
+
+import io.javalin.apibuilder.EndpointGroup;
+
+public class SimpleRoutes {
+
+	public static EndpointGroup routes = () -> {
+		path(":customerId", () -> {
+			get(ctx -> {});
+			path("items", () -> {
+				delete(":itemId", ctx -> {});
+				post(ctx -> {});
+				put(":itemId", ctx -> {});
+			});
+		});
+	};
+
+}
