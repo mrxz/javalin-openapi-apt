@@ -1,0 +1,6 @@
+import io.javalin.http.Context;
+
+public class Controller {
+	public void handler(Context ctx) {
+	}
+}

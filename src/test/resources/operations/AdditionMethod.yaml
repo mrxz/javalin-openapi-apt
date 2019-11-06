@@ -1,0 +1,18 @@
+operationId: handler
+parameters:
+- name: a
+  in: query
+  schema:
+    type: number
+- name: b
+  in: query
+  schema:
+    type: number
+responses:
+  200:
+    description: Successful operation
+    content:
+      application/json:
+        schema:
+          type: string
+

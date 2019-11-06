@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import me.noeri.atlatl.schema.factory.SchemaFactory;
 
 public class SchemaRegistry {
 

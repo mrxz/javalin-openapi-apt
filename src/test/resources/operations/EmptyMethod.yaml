@@ -1,0 +1,5 @@
+operationId: handler
+responses:
+  200:
+    description: Successful operation
+

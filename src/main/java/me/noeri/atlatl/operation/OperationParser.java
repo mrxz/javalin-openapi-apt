@@ -3,6 +3,7 @@ package me.noeri.atlatl.operation;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -10,6 +11,7 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
@@ -17,6 +19,7 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import java.util.Optional;
 import me.noeri.atlatl.Reporter;
+import me.noeri.atlatl.schema.BoxedPrimitivesUtils;
 import me.noeri.atlatl.schema.SchemaRegistry;
 import me.noeri.atlatl.utils.TypeUtils;
 import me.noeri.atlatl.utils.Visitors;
@@ -54,14 +57,14 @@ public class OperationParser {
 						result.addParametersItem(new Parameter()
 								.in("path")
 								.name(expression.getArgument(0).asStringLiteralExpr().getValue())
-								.schema(new StringSchema()) // For now
+								.schema(determineParameterSchema(expression))
 								.required(true));
 						break;
 					case "queryParam":
 						result.addParametersItem(new Parameter()
 								.in("query")
 								.name(expression.getArgument(0).asStringLiteralExpr().getValue())
-								.schema(new StringSchema())); // For now
+								.schema(determineParameterSchema(expression)));
 						break;
 					case "bodyAsClass":
 					case "bodyValidator":
@@ -116,5 +119,22 @@ public class OperationParser {
 			return recurse.apply(operation);
 		}), result);
 		return result;
+	}
+
+	private Schema<?> determineParameterSchema(MethodCallExpr expression) {
+		if(expression.getArguments().size() != 2) {
+			// No type information
+			return new StringSchema();
+		}
+
+		Expression typeArgumentExpression = expression.getArgument(1);
+		if(typeArgumentExpression.isClassExpr()) {
+			ResolvedType resolvedType = typeArgumentExpression.asClassExpr().getType().resolve();
+			Schema<?> potentialSchema = BoxedPrimitivesUtils.getSchemaFor(resolvedType);
+			if(potentialSchema != null) {
+				return potentialSchema;
+			}
+		}
+		return new StringSchema();
 	}
 }

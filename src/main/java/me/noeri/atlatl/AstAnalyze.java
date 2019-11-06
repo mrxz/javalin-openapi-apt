@@ -27,7 +27,7 @@ import java.util.Optional;
 import me.noeri.atlatl.operation.OperationParser;
 import me.noeri.atlatl.route.RouteAnalyzer;
 import me.noeri.atlatl.schema.SchemaRegistry;
-import me.noeri.atlatl.schema.SchemaRegistryFactory;
+import me.noeri.atlatl.schema.factory.SchemaRegistryFactory;
 import me.noeri.atlatl.utils.FileUtils;
 
 public class AstAnalyze {

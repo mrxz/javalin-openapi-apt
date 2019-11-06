@@ -1,10 +1,11 @@
-package me.noeri.atlatl.schema;
+package me.noeri.atlatl.schema.factory;
 
 import com.github.javaparser.resolution.types.ResolvedType;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import me.noeri.atlatl.schema.SchemaRegistry;
 
 public class PrimitiveSchemaFactory implements SchemaFactory {
 

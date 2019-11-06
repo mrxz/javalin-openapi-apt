@@ -1,0 +1,11 @@
+import io.javalin.http.Context;
+
+public class Controller {
+	public void handler(Context ctx) {
+		int a = ctx.queryParam("a", Integer.class).get();
+		int b = ctx.queryParam("b", Integer.class).get();
+
+		int c = a + b;
+		ctx.json(c);
+	}
+}

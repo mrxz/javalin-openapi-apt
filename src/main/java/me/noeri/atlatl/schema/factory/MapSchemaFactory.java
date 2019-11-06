@@ -1,10 +1,11 @@
-package me.noeri.atlatl.schema;
+package me.noeri.atlatl.schema.factory;
 
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import me.noeri.atlatl.schema.SchemaRegistry;
 import me.noeri.atlatl.utils.TypeUtils;
 
 public class MapSchemaFactory implements SchemaFactory {

@@ -1,0 +1,8 @@
+import io.javalin.http.Context;
+
+public class Controller {
+	public void handler(Context ctx) {
+		String name = ctx.queryParam("name");
+		ctx.json(String.format("Hello, %s", name));
+	}
+}

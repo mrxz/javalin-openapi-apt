@@ -1,8 +1,9 @@
-package me.noeri.atlatl.schema;
+package me.noeri.atlatl.schema.factory;
 
 import com.github.javaparser.resolution.types.ResolvedType;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
+import me.noeri.atlatl.schema.SchemaRegistry;
 
 public class ArraySchemaFactory implements SchemaFactory {
 
