@@ -79,10 +79,11 @@ public class OpenApiProcessor extends AbstractProcessor {
 
 			try {
 				FileObject output = filer.createResource(StandardLocation.CLASS_OUTPUT, "", annotation.outputFile());
-				OutputStream outputStream = output.openOutputStream();
-				Yaml.pretty().writeValue(outputStream, result);
+				try(OutputStream outputStream = output.openOutputStream()) {
+					Yaml.pretty().writeValue(outputStream, result);
+				}
 			} catch(IOException e) {
-				processingEnv.getMessager().printMessage(Kind.ERROR, "Failed to write resuling openapi.yaml file");
+				processingEnv.getMessager().printMessage(Kind.ERROR, "Failed to write resulting openapi file: " + annotation.outputFile());
 			}
 		}
 		return false;
