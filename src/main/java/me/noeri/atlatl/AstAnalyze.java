@@ -1,9 +1,13 @@
 package me.noeri.atlatl;
 
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
@@ -22,19 +26,12 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import me.noeri.atlatl.operation.OperationParser;
 import me.noeri.atlatl.route.RouteAnalyzer;
-import me.noeri.atlatl.schema.ArraySchemaFactory;
-import me.noeri.atlatl.schema.BoxedPrimitivesSchemaFactory;
-import me.noeri.atlatl.schema.CollectionSchemaFactory;
-import me.noeri.atlatl.schema.EnumSchemaFactory;
-import me.noeri.atlatl.schema.MapSchemaFactory;
-import me.noeri.atlatl.schema.PrimitiveSchemaFactory;
-import me.noeri.atlatl.schema.ReferenceSchemaFactory;
 import me.noeri.atlatl.schema.SchemaRegistry;
 import me.noeri.atlatl.schema.SchemaRegistryFactory;
-import me.noeri.atlatl.schema.SimpleModelNamingStrategy;
 import me.noeri.atlatl.utils.FileUtils;
 
 public class AstAnalyze {
+	private final JavaParser parser;
 	private final Reporter reporter;
 	private final RouteAnalyzer routeAnalyzer;
 	private final SchemaRegistry schemaRegistry;
@@ -42,9 +39,7 @@ public class AstAnalyze {
 
 	public AstAnalyze(TypeSolver typeSolver, Reporter reporter) {
 		JavaSymbolSolver symbolResolver = new JavaSymbolSolver(typeSolver);
-		StaticJavaParser
-			.getConfiguration()
-			.setSymbolResolver(symbolResolver);
+		parser = new JavaParser(new ParserConfiguration().setSymbolResolver(symbolResolver));
 		this.reporter = reporter;
 		routeAnalyzer = new RouteAnalyzer(typeSolver);
 		schemaRegistry = SchemaRegistryFactory.createDefaultRegistry(typeSolver);
@@ -60,7 +55,7 @@ public class AstAnalyze {
 
 		try {
 			File apiRoutesFile =  Paths.get(base, FileUtils.qualifiedNameToFile(apiRoutesClass)).toFile();
-			CompilationUnit compilationUnit = StaticJavaParser.parse(apiRoutesFile);
+			CompilationUnit compilationUnit = parse(apiRoutesFile);
 			Optional<FieldDeclaration> declaration  = compilationUnit
 					.findFirst(FieldDeclaration.class, field -> field.getVariable(0).getName().toString().equals(apiRoutesField));
 			if(declaration.isPresent()) {
@@ -76,27 +71,26 @@ public class AstAnalyze {
 					String controllerName = controllerType.asReferenceType().getTypeDeclaration().getName();
 					String methodName = route.getAction().asMethodReferenceExpr().getIdentifier();
 
-					CompilationUnit controllerCompilationUnit = compilationUnitCache.computeIfAbsent(controllerId, id -> {
-						try {
-							return StaticJavaParser.parse(Paths.get(base, FileUtils.qualifiedNameToFile(id)).toFile());
-						} catch(FileNotFoundException e) {
-							reporter.error("Failed to resolve method (" + route.getMethod() + " " + route.getPath() + ")", field);
-						}
-						return null;
-					});
-					MethodDeclaration method = controllerCompilationUnit
-							.findFirst(MethodDeclaration.class, m -> m.getNameAsString().equals(methodName))
-							.get();
-					Operation operation = operationParser.analyzeOperation(method, methodName);
-					// FIXME: Make tag resolution configurable
-					operation.setTags(Arrays.asList(controllerName.replaceAll("Controller$", "")));
+					try {
+						CompilationUnit controllerCompilationUnit = compilationUnitCache.computeIfAbsent(controllerId,
+								id -> parse(Paths.get(base, FileUtils.qualifiedNameToFile(id)).toFile()));
+						MethodDeclaration method = controllerCompilationUnit
+								.findFirst(MethodDeclaration.class, m -> m.getNameAsString().equals(methodName))
+								.get();
+						Operation operation = operationParser.analyzeOperation(method, methodName);
+						// FIXME: Make tag resolution configurable
+						operation.setTags(Arrays.asList(controllerName.replaceAll("Controller$", "")));
 
-					PathItem item = paths.computeIfAbsent(route.getPath(), x -> new PathItem());
-					switch(route.getMethod()) {
-					case "GET": item.get(operation); break;
-					case "POST": item.post(operation); break;
-					case "PUT": item.put(operation); break;
-					case "DELETE": item.delete(operation); break;
+						PathItem item = paths.computeIfAbsent(route.getPath(), x -> new PathItem());
+						switch(route.getMethod()) {
+						case "GET": item.get(operation); break;
+						case "POST": item.post(operation); break;
+						case "PUT": item.put(operation); break;
+						case "DELETE": item.delete(operation); break;
+						}
+					} catch(ParseProblemException | UnsolvedSymbolException e) {
+						String message = String.format("Failed to parse method %s of %s: %s", methodName, controllerId, e.getMessage());
+						reporter.error(message, controllerId + "#" + methodName);
 					}
 				});
 			} else {
@@ -107,9 +101,21 @@ public class AstAnalyze {
 			for(Entry<String, Schema<?>> schema : schemaRegistry.getSchemas().entrySet()) {
 				components.addSchemas(schema.getKey(), schema.getValue());
 			}
-		} catch(FileNotFoundException e) {
-			reporter.error("File containing api routes class " + apiRoutesClass + " not found", apiRoutesClass);
+		} catch(ParseProblemException e) {
+			reporter.error("Failed to parse " + apiRoutesClass + ": " + e.getMessage(), apiRoutesClass);
 		}
 		return openApi;
+	}
+
+	private CompilationUnit parse(File file) {
+		try {
+			ParseResult<CompilationUnit> result = parser.parse(file);
+			if(result.isSuccessful()) {
+				return result.getResult().get();
+			}
+			throw new ParseProblemException(result.getProblems());
+		} catch(FileNotFoundException e) {
+			throw new ParseProblemException(e);
+		}
 	}
 }
