@@ -14,6 +14,7 @@ public final class SchemaRegistryFactory {
 				new EnumSchemaFactory(),
 				new CollectionSchemaFactory(typeSolver),
 				new MapSchemaFactory(typeSolver),
+				new ComposedSchemaFactory(),
 				new ReferenceSchemaFactory());
 	}
 

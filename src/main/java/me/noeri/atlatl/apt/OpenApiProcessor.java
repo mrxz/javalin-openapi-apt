@@ -28,9 +28,10 @@ import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import me.noeri.atlatl.AstAnalyze;
+import me.noeri.atlatl.annotations.OpenApi;
 import me.noeri.atlatl.apt.javac.JavaCompilerContext;
 
-@SupportedAnnotationTypes("me.noeri.atlatl.apt.OpenApi")
+@SupportedAnnotationTypes("me.noeri.atlatl.annotations.OpenApi")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class OpenApiProcessor extends AbstractProcessor {

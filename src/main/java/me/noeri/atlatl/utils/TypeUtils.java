@@ -1,5 +1,6 @@
 package me.noeri.atlatl.utils;
 
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -17,6 +18,18 @@ public final class TypeUtils {
 		}
 		return referenceType.getTypeDeclaration().getAllAncestors().stream()
 				.anyMatch(ancestorReferenceType -> ancestorReferenceType.getId().equals(type.getId()));
+	}
+
+	public static ClassOrInterfaceDeclaration getDeclarationFromResolvedReferenceTypeDeclaration(ResolvedReferenceTypeDeclaration typeDeclaration) {
+		if(typeDeclaration.isInterface()) {
+			return typeDeclaration.asInterface().toAst().orElse(null);
+		}
+		if(typeDeclaration.isClass()) {
+			return typeDeclaration.asClass().toAst()
+					.flatMap(node -> node.findFirst(ClassOrInterfaceDeclaration.class))
+					.orElse(null);
+		}
+		return null;
 	}
 
 }

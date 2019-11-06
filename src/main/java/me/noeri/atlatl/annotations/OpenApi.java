@@ -1,4 +1,4 @@
-package me.noeri.atlatl.apt;
+package me.noeri.atlatl.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;

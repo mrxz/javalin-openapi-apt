@@ -1,0 +1,18 @@
+package schemas;
+
+import me.noeri.atlatl.annotations.KnownType;
+
+@KnownType(Child.class)
+@KnownType(OtherChild.class)
+public class Base {
+
+	private String baseField;
+
+	public static class Child {
+		private String childField;
+	}
+
+	public static class OtherChild {
+		private float otherChildField;
+	}
+}
