@@ -14,7 +14,7 @@ import me.noeri.atlatl.TestBase;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class SchemaIntegrationTest extends TestBase {
+public class SchemaGenerationTest extends TestBase {
 
 	@ParameterizedTest
 	@ValueSource(strings = {
