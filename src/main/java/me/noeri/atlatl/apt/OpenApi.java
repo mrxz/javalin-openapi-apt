@@ -9,5 +9,6 @@ public @interface OpenApi {
 	String title();
 	String description();
 	String version();
+	String outputFile() default "openapi.yaml";
 
 }
