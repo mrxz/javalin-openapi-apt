@@ -33,6 +33,7 @@ public class OperationParserTest extends TestBase {
 		"AdditionMethod",
 		"EmptyMethod",
 		"SimpleMethod",
+		"DocumentedMethod",
 	})
 	public void shouldGenerateCorrectOperation(String testCase) throws IOException {
 		ParseResult<CompilationUnit> cu = parser.parse(getResourceAsString("operations/" + testCase + ".java.txt"));

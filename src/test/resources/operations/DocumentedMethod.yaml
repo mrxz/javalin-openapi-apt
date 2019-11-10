@@ -1,0 +1,23 @@
+summary: Generates a customized greeting
+description: |-
+  <p>
+  Takes a given name and generates a customized greeting.
+  The exact greeting might depend on the given name, but
+  for a given name, it's guaranteed to return the exact
+  same greeting.
+  </p>
+operationId: handler
+parameters:
+- name: name
+  in: query
+  description: The name to use in the greeting
+  schema:
+    type: string
+responses:
+  200:
+    description: The customized greeting
+    content:
+      application/json:
+        schema:
+          type: string
+

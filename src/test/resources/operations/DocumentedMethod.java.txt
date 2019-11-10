@@ -1,0 +1,20 @@
+import io.javalin.http.Context;
+
+public class Controller {
+
+	/**
+	 * Generates a customized greeting
+	 * <p>
+	 * Takes a given name and generates a customized greeting.
+	 * The exact greeting might depend on the given name, but
+	 * for a given name, it's guaranteed to return the exact
+	 * same greeting.
+	 * </p>
+	 */
+	public void handler(Context ctx) {
+		// The name to use in the greeting
+		String name = ctx.queryParam("name");
+		// The customized greeting
+		ctx.json(String.format("Hello, %s", name));
+	}
+}

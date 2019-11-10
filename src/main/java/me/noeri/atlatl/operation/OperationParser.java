@@ -2,8 +2,11 @@ package me.noeri.atlatl.operation;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.javadoc.description.JavadocDescriptionElement;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -21,6 +24,7 @@ import java.util.Optional;
 import me.noeri.atlatl.Reporter;
 import me.noeri.atlatl.schema.BoxedPrimitivesUtils;
 import me.noeri.atlatl.schema.SchemaRegistry;
+import me.noeri.atlatl.utils.NodeUtils;
 import me.noeri.atlatl.utils.TypeUtils;
 import me.noeri.atlatl.utils.Visitors;
 
@@ -35,7 +39,7 @@ public class OperationParser {
 		this.reporter = reporter;
 	}
 
-	public Operation analyzeOperation(Node routeBuilderNode, String operationId) {
+	public Operation analyzeOperation(Node operationNode, String operationId) {
 		Operation result = new Operation()
 				.operationId(operationId);
 		ApiResponses responses = new ApiResponses()
@@ -43,7 +47,24 @@ public class OperationParser {
 						.description("Successful operation"));
 		result.responses(responses);
 
-		routeBuilderNode.accept(Visitors.methodCallVisitor((recurse, expression, operation, visitor) -> {
+		// Parse JavaDoc for method summary and description.
+		operationNode.findFirst(MethodDeclaration.class)
+			.flatMap(MethodDeclaration::getJavadoc)
+			.ifPresent(javaDoc -> {
+				Optional<String> summaryAndDescription = javaDoc.getDescription().getElements().stream()
+						.map(JavadocDescriptionElement::toText)
+						.findFirst();
+				if(summaryAndDescription.isPresent()) {
+					String[] parts = summaryAndDescription.get().split("\n", 2);
+					result.summary(parts[0]);
+					if(parts.length == 2) {
+						// FIXME: Actually convert JavaDoc to markdown
+						result.description(parts[1]);
+					}
+				}
+			});
+
+		operationNode.accept(Visitors.methodCallVisitor((recurse, expression, operation, visitor) -> {
 			ResolvedType resolvedType = null;
 			try {
 				resolvedType = expression.getScope().map(Expression::calculateResolvedType).orElse(null);
@@ -51,12 +72,19 @@ public class OperationParser {
 			if(resolvedType != null) {
 				// Check for invocations on the context.
 				if(TypeUtils.isAssignable(resolvedType, contextType)) {
+					// Check for any comments directly above the containing statement.
+					Optional<String> comment = NodeUtils.findFirstAncestor(Statement.class, expression)
+							.flatMap(Node::getComment)
+							.filter(Comment::isLineComment)
+							.map(Comment::getContent)
+							.map(String::trim);
 					String javalinMethod = expression.getNameAsString();
 					switch(javalinMethod) {
 					case "pathParam":
 						result.addParametersItem(new Parameter()
 								.in("path")
 								.name(expression.getArgument(0).asStringLiteralExpr().getValue())
+								.description(comment.orElse(null))
 								.schema(determineParameterSchema(expression))
 								.required(true));
 						break;
@@ -64,6 +92,7 @@ public class OperationParser {
 						result.addParametersItem(new Parameter()
 								.in("query")
 								.name(expression.getArgument(0).asStringLiteralExpr().getValue())
+								.description(comment.orElse(null))
 								.schema(determineParameterSchema(expression)));
 						break;
 					case "bodyAsClass":
@@ -78,7 +107,7 @@ public class OperationParser {
 					case "json":
 						ResolvedType responseType = expression.getArgument(0).calculateResolvedType();
 						responses.addApiResponse("200", new ApiResponse()
-										.description("Successful operation")
+										.description(comment.orElse("Successful operation"))
 										.content(new Content()
 												.addMediaType("application/json", new MediaType()
 														.schema(schemaRegistry.getSchemaOrReferenceFor(responseType)))));
