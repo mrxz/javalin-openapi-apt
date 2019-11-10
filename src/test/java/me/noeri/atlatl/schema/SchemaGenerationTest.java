@@ -25,6 +25,7 @@ public class SchemaGenerationTest extends TestBase {
 		"Collections",
 		"Enum",
 		"Composed",
+		"DocumentedModel",
 	})
 	public void shouldGenerateCorrectSchema(String testCase) throws IOException {
 		ParseResult<CompilationUnit> cu = parser.parse(getResource("schemas/" + testCase + ".java.txt"));

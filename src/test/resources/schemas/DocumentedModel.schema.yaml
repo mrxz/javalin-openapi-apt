@@ -1,0 +1,17 @@
+type: object
+properties:
+  name:
+    type: string
+    description: The name of the model.
+  age:
+    type: number
+    description: The age (in years) of the model.
+  active:
+    type: boolean
+    description: |-
+      Whether or not the model is actually active or not.
+      An inactive model will not be usable in any way and
+      will not change over time. Do note that the age is
+      computed and can thus change over time, despite the
+      model being inactive.
+

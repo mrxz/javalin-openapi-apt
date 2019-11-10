@@ -1,0 +1,22 @@
+package schemas;
+
+public class DocumentedModel {
+
+	/**
+	 * The name of the model.
+	 */
+	public String name;
+	/**
+	 * The age (in years) of the model.
+	 */
+	private int age;
+	/**
+	 * Whether or not the model is actually active or not.
+	 * An inactive model will not be usable in any way and
+	 * will not change over time. Do note that the age is
+	 * computed and can thus change over time, despite the
+	 * model being inactive.
+	 */
+	protected boolean active;
+
+}
