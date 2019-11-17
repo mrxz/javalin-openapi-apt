@@ -1,5 +1,8 @@
 package me.noeri.atlatl.apt.javac;
 
+import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
 import com.sun.tools.javac.code.Lint;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.file.FSInfo;
@@ -9,6 +12,7 @@ import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Options;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,5 +60,18 @@ public class JavaCompilerContext implements CompilerContext {
 		String relativeSourceFilePath = Stream.of(classSymbol.get().getQualifiedName().toString().split("\\."))
 			.collect(Collectors.joining("/", "", ".java"));
 		return sourceFilePath.substring(0, sourceFilePath.length() - relativeSourceFilePath.length());
+	}
+
+	@Override
+	public TypeSolver getTypeSolver() {
+		CombinedTypeSolver result = new CombinedTypeSolver();
+		getDependencyJars().stream().filter(File::exists).forEach(dependencyJar -> {
+			try {
+				result.add(new JarTypeSolver(dependencyJar));
+			} catch(IOException e) {
+				throw new RuntimeException("Failed to load dependency jar: " + dependencyJar.getPath());
+			}
+		});
+		return result;
 	}
 }

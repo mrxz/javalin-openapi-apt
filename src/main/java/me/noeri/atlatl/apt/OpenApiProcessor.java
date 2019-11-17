@@ -2,18 +2,14 @@ package me.noeri.atlatl.apt;
 
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import com.google.auto.service.AutoService;
 import io.swagger.v3.core.util.Yaml;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -29,7 +25,7 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import me.noeri.atlatl.AstAnalyze;
 import me.noeri.atlatl.annotations.OpenApi;
-import me.noeri.atlatl.apt.javac.JavaCompilerContext;
+import me.noeri.atlatl.apt.eclipse.EclipseCompilerContext;
 
 @SupportedAnnotationTypes("me.noeri.atlatl.annotations.OpenApi")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
@@ -44,7 +40,8 @@ public class OpenApiProcessor extends AbstractProcessor {
 		}
 
 		// Note: currently only Javac is supported
-		CompilerContext compilerContext = new JavaCompilerContext(processingEnv, roundEnv);
+		//CompilerContext compilerContext = new JavaCompilerContext(processingEnv, roundEnv);
+		CompilerContext compilerContext = new EclipseCompilerContext(processingEnv, roundEnv);
 
 		Set<? extends Element> targetElements = roundEnv.getElementsAnnotatedWith(OpenApi.class);
 		for(Element targetElement : targetElements) {
@@ -54,21 +51,13 @@ public class OpenApiProcessor extends AbstractProcessor {
 			String routesClass = classElement.getQualifiedName().toString();
 			String routesMethod = targetElement.getSimpleName().toString();
 
-			List<TypeSolver> typeSolvers = new ArrayList<>();
-			typeSolvers.add(new ReflectionTypeSolver(true));
-			compilerContext.getDependencyJars().stream().filter(File::exists).forEach(dependencyJar -> {
-				try {
-					typeSolvers.add(new JarTypeSolver(dependencyJar));
-				} catch(IOException e) {
-					processingEnv.getMessager().printMessage(Kind.ERROR, "Failed to load dependency jar: " + dependencyJar.getPath());
-				}
-			});
-
 			// Derive source path
 			String sourcePath = compilerContext.getSourcePath();
-			typeSolvers.add(new JavaParserTypeSolver(sourcePath));
 
-			TypeSolver typeSolver = new CombinedTypeSolver(typeSolvers.toArray(new TypeSolver[typeSolvers.size()]));
+			TypeSolver typeSolver = new CombinedTypeSolver(
+					new ReflectionTypeSolver(true),
+					compilerContext.getTypeSolver(),
+					new JavaParserTypeSolver(sourcePath));
 			AstAnalyze analyzer = new AstAnalyze(typeSolver, new AptReporter(processingEnv));
 			OpenAPI result = analyzer.analyze(sourcePath, routesClass, routesMethod);
 
@@ -79,7 +68,7 @@ public class OpenApiProcessor extends AbstractProcessor {
 					.description(annotation.description()));
 
 			try {
-				FileObject output = filer.createResource(StandardLocation.CLASS_OUTPUT, "", annotation.outputFile());
+				FileObject output = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", annotation.outputFile());
 				try(OutputStream outputStream = output.openOutputStream()) {
 					Yaml.pretty().writeValue(outputStream, result);
 				}
