@@ -10,9 +10,12 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -25,7 +28,6 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import me.noeri.atlatl.AstAnalyze;
 import me.noeri.atlatl.annotations.OpenApi;
-import me.noeri.atlatl.apt.eclipse.EclipseCompilerContext;
 
 @SupportedAnnotationTypes("me.noeri.atlatl.annotations.OpenApi")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
@@ -39,9 +41,12 @@ public class OpenApiProcessor extends AbstractProcessor {
 			return false;
 		}
 
-		// Note: currently only Javac is supported
-		//CompilerContext compilerContext = new JavaCompilerContext(processingEnv, roundEnv);
-		CompilerContext compilerContext = new EclipseCompilerContext(processingEnv, roundEnv);
+		// Note: some hackery to get it to work in various environments.
+		CompilerContextFactory compilerContextFactory = new CompilerContextFactory();
+		if(compilerContextFactory.isEcjIde(processingEnv) && !compilerContextFactory.classLoaderSetupCorrectly(processingEnv)) {
+			return executeProcessorInsideProcessingEnvClassLoader(annotations, roundEnv);
+		}
+		CompilerContext compilerContext = compilerContextFactory.fromProcessingEnvironment(processingEnv, roundEnv);
 
 		Set<? extends Element> targetElements = roundEnv.getElementsAnnotatedWith(OpenApi.class);
 		for(Element targetElement : targetElements) {
@@ -77,5 +82,23 @@ public class OpenApiProcessor extends AbstractProcessor {
 			}
 		}
 		return false;
+	}
+
+	private boolean executeProcessorInsideProcessingEnvClassLoader(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+		URLClassLoader thisClassLoader = (URLClassLoader) this.getClass().getClassLoader();
+		try(URLClassLoader newClassLoader = new URLClassLoader(thisClassLoader.getURLs(), processingEnv.getClass().getClassLoader())) {
+			Class<?> clz = newClassLoader.loadClass(OpenApiProcessor.class.getCanonicalName());
+			Object instance = clz.newInstance();
+
+			// Initialize the processor
+			Method initMethod = clz.getMethod("init", ProcessingEnvironment.class);
+			initMethod.invoke(instance, processingEnv);
+
+			// Invoke the process method
+			Method processMethod = clz.getMethod("process", Set.class, RoundEnvironment.class);
+			return (boolean) processMethod.invoke(instance, annotations, roundEnv);
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

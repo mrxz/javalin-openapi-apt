@@ -36,15 +36,6 @@ public class JavaCompilerContext implements CompilerContext {
 	}
 
 	@Override
-	public Collection<File> getDependencyJars() {
-		Context context = processingEnvironment.getContext();
-		Locations locations = new Locations();
-		locations.update(Log.instance(context), Options.instance(context), Lint.instance(context), FSInfo.instance(context));
-
-		return locations.userClassPath();
-	}
-
-	@Override
 	public String getSourcePath() {
 		Optional<Symbol.ClassSymbol> classSymbol = roundEnvironment.getRootElements()
 				.stream()
@@ -73,5 +64,13 @@ public class JavaCompilerContext implements CompilerContext {
 			}
 		});
 		return result;
+	}
+
+	private Collection<File> getDependencyJars() {
+		Context context = processingEnvironment.getContext();
+		Locations locations = new Locations();
+		locations.update(Log.instance(context), Options.instance(context), Lint.instance(context), FSInfo.instance(context));
+
+		return locations.userClassPath();
 	}
 }
