@@ -1,9 +1,10 @@
 package me.noeri.atlatl.apt.eclipse;
 
 import com.github.javaparser.ast.AccessSpecifier;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.resolution.MethodUsage;
 import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedEnumConstantDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedEnumDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
@@ -12,10 +13,10 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.core.resolution.Context;
 import com.github.javaparser.symbolsolver.core.resolution.MethodUsageResolutionCapability;
-import com.github.javaparser.symbolsolver.logic.AbstractClassDeclaration;
+import com.github.javaparser.symbolsolver.logic.AbstractTypeDeclaration;
+import com.github.javaparser.symbolsolver.logic.MethodResolutionCapability;
 import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
-import com.github.javaparser.symbolsolver.model.typesystem.ReferenceTypeImpl;
 import com.github.javaparser.symbolsolver.resolution.MethodResolutionLogic;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,49 +24,34 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javassist.bytecode.AccessFlag;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
-public class EcjClassDeclaration extends AbstractClassDeclaration implements MethodUsageResolutionCapability {
+public class EcjEnumDeclaration extends AbstractTypeDeclaration
+		implements ResolvedEnumDeclaration, MethodResolutionCapability, MethodUsageResolutionCapability {
 
 	private final ReferenceBinding referenceBinding;
 	private final TypeSolver typeSolver;
 
-	public EcjClassDeclaration(ReferenceBinding type, TypeSolver typeSolver) {
+	public EcjEnumDeclaration(ReferenceBinding type, TypeSolver typeSolver) {
 		this.referenceBinding = type;
 		this.typeSolver = typeSolver;
 	}
 
 	@Override
-	public ResolvedReferenceType getSuperClass() {
-		if(referenceBinding.superclass() == null) {
-			return new ReferenceTypeImpl(typeSolver.solveType(Object.class.getCanonicalName()), typeSolver);
-		}
-		if(!referenceBinding.isGenericType()) {
-			return new ReferenceTypeImpl(typeSolver.solveType(new String(referenceBinding.superclass().qualifiedSourceName())), typeSolver);
-		}
-		System.err.println("Generic reference types aren't supported: " + getQualifiedName());
-		throw new RuntimeException("Generic reference types aren't supported");
-	}
-
-	@Override
-	public List<ResolvedReferenceType> getInterfaces() {
-		System.out.println("[Classs] getInterfaces()");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
-	}
-
-	@Override
 	public List<ResolvedConstructorDeclaration> getConstructors() {
-		System.out.println("[Classs] getConstructors()");
+		System.out.println("[Enum] getConstructors()");
 		// TODO Auto-generated method stub
 		return new ArrayList<>();
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getAncestors(boolean acceptIncompleteList) {
-		System.out.println("[Classs] getAncestors(" + acceptIncompleteList + ")");
+		System.out.println("[Enum] getAncestors(" + acceptIncompleteList + ")");
 		// TODO Auto-generated method stub
 		return new ArrayList<>();
 	}
@@ -87,30 +73,19 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public Set<ResolvedMethodDeclaration> getDeclaredMethods() {
-		System.out.println("[Classs] getDeclaredMethods()");
+		System.out.println("[Enum] getDeclaredMethods()");
 		// TODO Auto-generated method stub
 		return new HashSet<>();
 	}
 
 	@Override
 	public boolean isAssignableBy(ResolvedType type) {
-		if(type.isNull()) {
-			return true;
-		}
-
-		// TODO look into generics
-		if(type.describe().equals(this.getQualifiedName())) {
-			return true;
-		}
-
-		// TODO: Super classes / interfaces :-/
-		System.out.println("[Classs] isAssignable(" + type + ")");
-		return false;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public boolean isAssignableBy(ResolvedReferenceTypeDeclaration other) {
-		return isAssignableBy(new ReferenceTypeImpl(other, typeSolver));
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -147,7 +122,7 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public List<ResolvedTypeParameterDeclaration> getTypeParameters() {
-		System.out.println("[Classs] getTypeParameters()");
+		System.out.println("[Enum] getTypeParameters()");
 		// TODO Auto-generated method stub
 		return new ArrayList<>();
 	}
@@ -189,7 +164,6 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public SymbolReference<ResolvedMethodDeclaration> solveMethod(String name, List<ResolvedType> argumentsTypes, boolean staticOnly) {
-		// TODO Auto-generated method stub
 		System.out.println(" Tyring to solve method " + name + " on " + getClassName());
 
 		List<ResolvedMethodDeclaration> candidates = new ArrayList<>();
@@ -221,23 +195,26 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes, Context invocationContext, List<ResolvedType> typeParameters) {
-		System.out.println("[Classs] solveMethodAsUsage(" + name + ", " + argumentTypes + ", ...)");
+		System.out.println("[Enum] solveMethodAsUsage(" + name + ", " + argumentTypes + ", ...)");
 		// TODO Auto-generated method stub
 		return Optional.empty();
 	}
 
 	@Override
-	protected ResolvedReferenceType object() {
-		return new ReferenceTypeImpl(typeSolver.solveType(Object.class.getCanonicalName()), typeSolver);
+	public List<ResolvedEnumConstantDeclaration> getEnumConstants() {
+		System.out.println(" ----> Getting enum constants");
+		for(FieldBinding f : referenceBinding.fields()) {
+			System.out.println("\t Field: " + new String(f.readableName()));
+		}
+		return Arrays.stream(referenceBinding.fields())
+				.filter(f -> (f.getAccessFlags() & AccessFlag.ENUM) != 0)
+				.map(f -> new EcjEnumConstantDeclaration(f, typeSolver))
+				.collect(Collectors.toList());
 	}
 
 	@Override
 	public String toString() {
-		return "EcjClassDeclaration {" + new String(referenceBinding.readableName()) + "}";
+		return "EcjEnumDeclaration {" + new String(referenceBinding.readableName()) + "}";
 	}
 
-	@Override
-	public Optional<Node> toAst() {
-		return Optional.empty();
-	}
 }

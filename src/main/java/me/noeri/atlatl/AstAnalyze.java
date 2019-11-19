@@ -70,7 +70,6 @@ public class AstAnalyze {
 					String controllerId = controllerType.asReferenceType().getQualifiedName();
 					String controllerName = controllerType.asReferenceType().getTypeDeclaration().getName();
 					String methodName = route.getAction().asMethodReferenceExpr().getIdentifier();
-
 					try {
 						CompilationUnit controllerCompilationUnit = compilationUnitCache.computeIfAbsent(controllerId,
 								id -> parse(Paths.get(base, FileUtils.qualifiedNameToFile(id)).toFile()));

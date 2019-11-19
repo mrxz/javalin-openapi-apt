@@ -35,40 +35,38 @@ public final class EcjFactory {
 				System.out.println(typeBinding.getClass());
 				return new ReferenceTypeImpl(new EcjInterfaceDeclaration((ReferenceBinding) typeBinding, typeSolver), typeSolver);
 			} else if(typeBinding.isEnum()) {
-				// return new ReferenceTypeImpl(new EcjEnumDeclaration(referenceBinding, typeSolver), typeSolver);
+				return new ReferenceTypeImpl(new EcjEnumDeclaration((ReferenceBinding) typeBinding, typeSolver), typeSolver);
 			} else {
 				return new ReferenceTypeImpl(new EcjClassDeclaration((ReferenceBinding) typeBinding, typeSolver), typeSolver);
 			}
-			throw new RuntimeException("Type not yet supported!");
 		}
 	}
 
 	public static ResolvedReferenceTypeDeclaration toTypeDeclaration(ReferenceBinding type, TypeSolver typeSolver) {
 		if(type.isInterface()) {
-			// return new EcjInterfaceDeclararion(type, typeSolver);
+			return new EcjInterfaceDeclaration(type, typeSolver);
 		} else if(type.isEnum()) {
-			// return new EcjEnumDeclaration(type, typeSolver);
+			return new EcjEnumDeclaration(type, typeSolver);
 		} else if(type.isArrayType()) {
 			throw new IllegalArgumentException("This method should not be called passing an array");
 		} else {
 			return new EcjClassDeclaration(type, typeSolver);
 		}
-		throw new IllegalArgumentException("This method should not be called passing an array");
 	}
 
-	 public static ResolvedReferenceTypeDeclaration toTypeDeclaration(CtClass ctClazz, TypeSolver typeSolver) {
-		    if (ctClazz.isAnnotation()) {
-		      return new JavassistAnnotationDeclaration(ctClazz, typeSolver);
-		    } else if (ctClazz.isInterface()) {
-		      return new JavassistInterfaceDeclaration(ctClazz, typeSolver);
-		    } else if (ctClazz.isEnum()) {
-		      return new JavassistEnumDeclaration(ctClazz, typeSolver);
-		    } else if (ctClazz.isArray()) {
-		      throw new IllegalArgumentException("This method should not be called passing an array");
-		    } else {
-		      return new JavassistClassDeclaration(ctClazz, typeSolver);
-		    }
-		  }
+	public static ResolvedReferenceTypeDeclaration toTypeDeclaration(CtClass ctClazz, TypeSolver typeSolver) {
+		if(ctClazz.isAnnotation()) {
+			return new JavassistAnnotationDeclaration(ctClazz, typeSolver);
+		} else if(ctClazz.isInterface()) {
+			return new JavassistInterfaceDeclaration(ctClazz, typeSolver);
+		} else if(ctClazz.isEnum()) {
+			return new JavassistEnumDeclaration(ctClazz, typeSolver);
+		} else if(ctClazz.isArray()) {
+			throw new IllegalArgumentException("This method should not be called passing an array");
+		} else {
+			return new JavassistClassDeclaration(ctClazz, typeSolver);
+		}
+	}
 
 	public static AccessSpecifier modifiersToAccessLevel(int accessFlags) {
 		if(Modifier.isPublic(accessFlags)) {
@@ -81,7 +79,4 @@ public final class EcjFactory {
 			return AccessSpecifier.PACKAGE_PRIVATE;
 		}
 	}
-
-
-
 }
