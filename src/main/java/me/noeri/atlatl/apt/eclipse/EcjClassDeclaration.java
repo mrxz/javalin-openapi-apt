@@ -3,6 +3,7 @@ package me.noeri.atlatl.apt.eclipse;
 import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.resolution.MethodUsage;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
@@ -12,6 +13,8 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.core.resolution.Context;
 import com.github.javaparser.symbolsolver.core.resolution.MethodUsageResolutionCapability;
+import com.github.javaparser.symbolsolver.javassistmodel.JavassistTypeParameter;
+import com.github.javaparser.symbolsolver.javassistmodel.JavassistUtilsTrampoline;
 import com.github.javaparser.symbolsolver.logic.AbstractClassDeclaration;
 import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
@@ -19,11 +22,14 @@ import com.github.javaparser.symbolsolver.model.typesystem.ReferenceTypeImpl;
 import com.github.javaparser.symbolsolver.resolution.MethodResolutionLogic;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javassist.bytecode.BadBytecode;
+import javassist.bytecode.SignatureAttribute;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
@@ -39,35 +45,63 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public ResolvedReferenceType getSuperClass() {
-		if(referenceBinding.superclass() == null) {
-			return new ReferenceTypeImpl(typeSolver.solveType(Object.class.getCanonicalName()), typeSolver);
-		}
 		if(!referenceBinding.isGenericType()) {
-			return new ReferenceTypeImpl(typeSolver.solveType(new String(referenceBinding.superclass().qualifiedSourceName())), typeSolver);
+			return new ReferenceTypeImpl(typeSolver.solveType(EcjUtils.getFQN(referenceBinding.superclass())), typeSolver);
+		} else {
+			return new ReferenceTypeImpl(typeSolver.solveType(EcjUtils.getFQN(referenceBinding.superclass())), typeSolver);
 		}
-		System.err.println("Generic reference types aren't supported: " + getQualifiedName());
-		throw new RuntimeException("Generic reference types aren't supported");
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getInterfaces() {
-		System.out.println("[Classs] getInterfaces()");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		try {
+			if(!referenceBinding.isParameterizedType()) {
+				return Arrays.stream(referenceBinding.superInterfaces())
+						.map(i -> typeSolver.solveType(EcjUtils.getFQN(i)))
+						.map(i -> new ReferenceTypeImpl(i, typeSolver)).collect(Collectors.toList());
+			} else {
+				SignatureAttribute.ClassSignature classSignature = SignatureAttribute
+						.toClassSignature(EcjUtils.getGenericSignature(referenceBinding));
+				return Arrays.stream(classSignature.getInterfaces())
+						.map(i -> JavassistUtilsTrampoline.signatureTypeToType(i, typeSolver, this).asReferenceType())
+						.collect(Collectors.toList());
+			}
+		} catch(BadBytecode e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	public List<ResolvedConstructorDeclaration> getConstructors() {
-		System.out.println("[Classs] getConstructors()");
-		// TODO Auto-generated method stub
+		// TODO Support constructors
 		return new ArrayList<>();
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getAncestors(boolean acceptIncompleteList) {
-		System.out.println("[Classs] getAncestors(" + acceptIncompleteList + ")");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		List<ResolvedReferenceType> ancestors = new ArrayList<>();
+		try {
+			ResolvedReferenceType superClass = getSuperClass();
+			if(superClass != null) {
+				ancestors.add(superClass);
+			}
+		} catch(UnsolvedSymbolException e) {
+			if(!acceptIncompleteList) {
+				// we only throw an exception if we require a complete list;
+				// otherwise, we attempt to continue gracefully
+				throw e;
+			}
+		}
+		try {
+			ancestors.addAll(getInterfaces());
+		} catch(UnsolvedSymbolException e) {
+			if(!acceptIncompleteList) {
+				// we only throw an exception if we require a complete list;
+				// otherwise, we attempt to continue gracefully
+				throw e;
+			}
+		}
+		return ancestors;
 	}
 
 	@Override
@@ -87,9 +121,9 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public Set<ResolvedMethodDeclaration> getDeclaredMethods() {
-		System.out.println("[Classs] getDeclaredMethods()");
-		// TODO Auto-generated method stub
-		return new HashSet<>();
+		return Arrays.stream(referenceBinding.methods())
+				.map(m -> new EcjMethodDeclaration(m, typeSolver))
+				.collect(Collectors.toSet());
 	}
 
 	@Override
@@ -104,7 +138,6 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 		}
 
 		// TODO: Super classes / interfaces :-/
-		System.out.println("[Classs] isAssignable(" + type + ")");
 		return false;
 	}
 
@@ -147,9 +180,18 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public List<ResolvedTypeParameterDeclaration> getTypeParameters() {
-		System.out.println("[Classs] getTypeParameters()");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		if(referenceBinding.isParameterizedType() || referenceBinding.typeVariables().length > 0) {
+			String genericSignature = EcjUtils.getGenericSignature(referenceBinding);
+			try {
+				SignatureAttribute.ClassSignature classSignature = SignatureAttribute.toClassSignature(genericSignature);
+				return Arrays.<SignatureAttribute.TypeParameter> stream(classSignature.getParameters())
+						.map((tp) -> new JavassistTypeParameter(tp, EcjFactory.toTypeDeclaration(referenceBinding, typeSolver), typeSolver))
+						.collect(Collectors.toList());
+			} catch(BadBytecode e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return Collections.emptyList();
 	}
 
 	@Override
@@ -189,9 +231,6 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 	@Override
 	public SymbolReference<ResolvedMethodDeclaration> solveMethod(String name, List<ResolvedType> argumentsTypes, boolean staticOnly) {
-		// TODO Auto-generated method stub
-		System.out.println(" Tyring to solve method " + name + " on " + getClassName());
-
 		List<ResolvedMethodDeclaration> candidates = new ArrayList<>();
 		for(MethodBinding methodBinding : referenceBinding.methods()) {
 			// Ensure name matches
@@ -201,7 +240,6 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 
 			// TODO: synthetic and bridge??
 			if(methodBinding.isSynthetic() || methodBinding.isBridge()) {
-				System.out.println("Synthetic or bridge");
 				continue;
 			}
 
@@ -213,17 +251,13 @@ public class EcjClassDeclaration extends AbstractClassDeclaration implements Met
 			if(argumentsTypes.isEmpty() && candidate.getNumberOfParams() == 0) {
 				return SymbolReference.solved(candidate);
 			}
-
-			System.out.println(new String(methodBinding.constantPoolName()) + " -> " + methodBinding);
 		}
 		return MethodResolutionLogic.findMostApplicable(candidates, name, argumentsTypes, typeSolver);
 	}
 
 	@Override
 	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes, Context invocationContext, List<ResolvedType> typeParameters) {
-		System.out.println("[Classs] solveMethodAsUsage(" + name + ", " + argumentTypes + ", ...)");
-		// TODO Auto-generated method stub
-		return Optional.empty();
+		return EcjUtils.getMethodUsage(referenceBinding, name, argumentTypes, typeSolver, getTypeParameters(), typeParameters);
 	}
 
 	@Override

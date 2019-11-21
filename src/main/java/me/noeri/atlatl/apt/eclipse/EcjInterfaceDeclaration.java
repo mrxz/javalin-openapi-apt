@@ -3,6 +3,7 @@ package me.noeri.atlatl.apt.eclipse;
 import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.resolution.MethodUsage;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedInterfaceDeclaration;
@@ -13,18 +14,23 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.core.resolution.Context;
 import com.github.javaparser.symbolsolver.core.resolution.MethodUsageResolutionCapability;
+import com.github.javaparser.symbolsolver.javassistmodel.JavassistTypeParameter;
 import com.github.javaparser.symbolsolver.logic.AbstractTypeDeclaration;
 import com.github.javaparser.symbolsolver.logic.MethodResolutionCapability;
 import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
+import com.github.javaparser.symbolsolver.model.typesystem.ReferenceTypeImpl;
 import com.github.javaparser.symbolsolver.resolution.MethodResolutionLogic;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javassist.bytecode.BadBytecode;
+import javassist.bytecode.SignatureAttribute;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
@@ -43,23 +49,37 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 
 	@Override
 	public List<ResolvedReferenceType> getAncestors(boolean acceptIncompleteList) {
-		System.out.println("[Interface] getAncestors(" + acceptIncompleteList + ")");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		List<ResolvedReferenceType> ancestors = new ArrayList<>();
+		for(ReferenceBinding interfaze : referenceBinding.superInterfaces()) {
+			try {
+				ResolvedReferenceType superInterfaze = EcjFactory.typeUsageFor(interfaze, typeSolver).asReferenceType();
+				ancestors.add(superInterfaze);
+			} catch(UnsolvedSymbolException e) {
+				if(!acceptIncompleteList) {
+					// we only throw an exception if we require a complete
+					// list; otherwise, we attempt to continue gracefully
+					throw e;
+				}
+			}
+		}
+
+		ancestors = ancestors.stream().filter(a -> !a.getQualifiedName().equals(Object.class.getCanonicalName()))
+				.collect(Collectors.toList());
+		ancestors.add(new ReferenceTypeImpl(typeSolver.solveType(Object.class.getCanonicalName()), typeSolver));
+		return ancestors;
 	}
 
 	@Override
 	public List<ResolvedFieldDeclaration> getAllFields() {
-		System.out.println("[Interface] getAllFields()");
-		// TODO Auto-generated method stub
+		// TODO Implement getAllFields for interface
 		return new ArrayList<>();
 	}
 
 	@Override
 	public Set<ResolvedMethodDeclaration> getDeclaredMethods() {
-		System.out.println("[Interface] getDeclaredMethods()");
-		// TODO Auto-generated method stub
-		return new HashSet<>();
+		return Arrays.stream(referenceBinding.methods())
+				.map(m -> new EcjMethodDeclaration(m, typeSolver))
+				.collect(Collectors.toSet());
 	}
 
 	@Override
@@ -74,7 +94,6 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 
 	@Override
 	public boolean hasDirectlyAnnotation(String qualifiedName) {
-		System.out.println("[Interface] hasDirectlyAnnotation(" + qualifiedName + ")");
 		return Stream.of(referenceBinding.getAnnotations())
 				.anyMatch(binding -> EcjUtils.getFQN(binding).equals(qualifiedName));
 	}
@@ -86,8 +105,7 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 
 	@Override
 	public Optional<ResolvedReferenceTypeDeclaration> containerType() {
-		System.out.println("[Interface] containerType()");
-		// TODO Auto-generated method stub
+		// TODO Implement containerType for interface
 		return Optional.empty();
 	}
 
@@ -113,11 +131,19 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 
 	@Override
 	public List<ResolvedTypeParameterDeclaration> getTypeParameters() {
-		if(referenceBinding.typeVariables().length > 0) {
-			// TODO Auto-generated method stub
-			System.out.println("[Interface] getTypeParameters()");
+		// FIXME: Move implementation to common utility
+		if(referenceBinding.isParameterizedType() || referenceBinding.typeVariables().length > 0) {
+			String genericSignature = EcjUtils.getGenericSignature(referenceBinding);
+			try {
+				SignatureAttribute.ClassSignature classSignature = SignatureAttribute.toClassSignature(genericSignature);
+				return Arrays.<SignatureAttribute.TypeParameter> stream(classSignature.getParameters())
+						.map((tp) -> new JavassistTypeParameter(tp, EcjFactory.toTypeDeclaration(referenceBinding, typeSolver), typeSolver))
+						.collect(Collectors.toList());
+			} catch(BadBytecode e) {
+				throw new RuntimeException(e);
+			}
 		}
-		return new ArrayList<>();
+		return Collections.emptyList();
 	}
 
 	@Override
@@ -126,18 +152,13 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 	}
 
 	@Override
-	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes,
-			Context invocationContext, List<ResolvedType> typeParameters) {
-		System.out.println("[Interface] solveMethodAsUsage(" + name + ", List<ResolvedType> (" + argumentTypes.size() + "), invocationContext, typeParameters (" + typeParameters.size() + "))");
-		// TODO Auto-generated method stub
-		return Optional.empty();
+	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes, Context invocationContext, List<ResolvedType> typeParameters) {
+		return EcjUtils.getMethodUsage(referenceBinding, name, argumentTypes, typeSolver, getTypeParameters(), typeParameters);
 	}
 
 	@Override
 	public SymbolReference<ResolvedMethodDeclaration> solveMethod(String name, List<ResolvedType> argumentsTypes, boolean staticOnly) {
 		// TODO: Copied from EcjClassDeclaration
-		System.out.println(" Tyring to solve method " + name + " on " + getClassName());
-
         List<ResolvedMethodDeclaration> candidates = new ArrayList<>();
 		for(MethodBinding methodBinding : referenceBinding.methods()) {
 			// Ensure name matches
@@ -147,7 +168,6 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
 
 			// TODO: synthetic and bridge??
 			if(methodBinding.isSynthetic() || methodBinding.isBridge()) {
-				System.out.println("Synthetic or bridge");
 				continue;
 			}
 
@@ -158,17 +178,14 @@ public class EcjInterfaceDeclaration extends AbstractTypeDeclaration implements 
             if(argumentsTypes.isEmpty() && candidate.getNumberOfParams() == 0) {
                 return SymbolReference.solved(candidate);
             }
-
-			System.out.println(new String(methodBinding.constantPoolName()) + " -> " + methodBinding);
-			return MethodResolutionLogic.findMostApplicable(candidates, name, argumentsTypes, typeSolver);
 		}
-		return SymbolReference.unsolved(ResolvedMethodDeclaration.class);
+
+		return MethodResolutionLogic.findMostApplicable(candidates, name, argumentsTypes, typeSolver);
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getInterfacesExtended() {
-		System.out.println("[Interface] getInterfacesExtended()");
-		// TODO Auto-generated method stub
+		// TODO implement getInterfacesExtended for interface
 		return Collections.emptyList();
 	}
 

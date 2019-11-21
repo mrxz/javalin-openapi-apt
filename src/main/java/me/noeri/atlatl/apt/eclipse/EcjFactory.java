@@ -20,11 +20,9 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 public final class EcjFactory {
 
 	public static ResolvedType typeUsageFor(TypeBinding typeBinding, TypeSolver typeSolver) {
-		System.out.println("[EcjFactory] typeUsageFor(" + new String(typeBinding.readableName()) + ")");
 		if(typeBinding.isArrayType()) {
-			// TODO: is leafComponentType actually the type of the array?
 			return new ResolvedArrayType(typeUsageFor(typeBinding.leafComponentType(), typeSolver));
-		} else if(typeBinding.isPrimitiveType()) { // FIXME: Perhaps primitiveOrBoxedPrimitiveType?
+		} else if(typeBinding.isPrimitiveType()) {
 			if(new String(typeBinding.readableName()).equals("void")) { // FIXME: is this even possible?
 				return ResolvedVoidType.INSTANCE;
 			} else {
@@ -32,7 +30,6 @@ public final class EcjFactory {
 			}
 		} else {
 			if(typeBinding.isInterface()) {
-				System.out.println(typeBinding.getClass());
 				return new ReferenceTypeImpl(new EcjInterfaceDeclaration((ReferenceBinding) typeBinding, typeSolver), typeSolver);
 			} else if(typeBinding.isEnum()) {
 				return new ReferenceTypeImpl(new EcjEnumDeclaration((ReferenceBinding) typeBinding, typeSolver), typeSolver);

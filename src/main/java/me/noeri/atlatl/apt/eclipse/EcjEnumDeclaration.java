@@ -2,6 +2,7 @@ package me.noeri.atlatl.apt.eclipse;
 
 import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.resolution.MethodUsage;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedEnumConstantDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedEnumDeclaration;
@@ -13,21 +14,24 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.core.resolution.Context;
 import com.github.javaparser.symbolsolver.core.resolution.MethodUsageResolutionCapability;
+import com.github.javaparser.symbolsolver.javassistmodel.JavassistTypeParameter;
 import com.github.javaparser.symbolsolver.logic.AbstractTypeDeclaration;
 import com.github.javaparser.symbolsolver.logic.MethodResolutionCapability;
 import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
+import com.github.javaparser.symbolsolver.model.typesystem.ReferenceTypeImpl;
 import com.github.javaparser.symbolsolver.resolution.MethodResolutionLogic;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javassist.bytecode.AccessFlag;
-import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
+import javassist.bytecode.BadBytecode;
+import javassist.bytecode.SignatureAttribute;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
@@ -44,16 +48,42 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public List<ResolvedConstructorDeclaration> getConstructors() {
-		System.out.println("[Enum] getConstructors()");
-		// TODO Auto-generated method stub
+		// TODO Implement constructors
 		return new ArrayList<>();
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getAncestors(boolean acceptIncompleteList) {
-		System.out.println("[Enum] getAncestors(" + acceptIncompleteList + ")");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		// Direct ancestors of an enum are java.lang.Enum and interfaces
+		List<ResolvedReferenceType> ancestors = new ArrayList<>();
+
+		String superClassName = EcjUtils.getFQN(referenceBinding.superclass());
+
+		if(superClassName != null) {
+			try {
+				ancestors.add(new ReferenceTypeImpl(typeSolver.solveType(superClassName), typeSolver));
+			} catch(UnsolvedSymbolException e) {
+				if(!acceptIncompleteList) {
+					// we only throw an exception if we require a complete list;
+					// otherwise, we attempt to continue gracefully
+					throw e;
+				}
+			}
+		}
+
+		for(String interfazeName : Arrays.stream(referenceBinding.superInterfaces()).map(EcjUtils::getFQN).collect(Collectors.toList())) {
+			try {
+				ancestors.add(new ReferenceTypeImpl(typeSolver.solveType(interfazeName), typeSolver));
+			} catch(UnsolvedSymbolException e) {
+				if(!acceptIncompleteList) {
+					// we only throw an exception if we require a complete list;
+					// otherwise, we attempt to continue gracefully
+					throw e;
+				}
+			}
+		}
+
+		return ancestors;
 	}
 
 	@Override
@@ -73,9 +103,9 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public Set<ResolvedMethodDeclaration> getDeclaredMethods() {
-		System.out.println("[Enum] getDeclaredMethods()");
-		// TODO Auto-generated method stub
-		return new HashSet<>();
+		return Arrays.stream(referenceBinding.methods())
+				.map(m -> new EcjMethodDeclaration(m, typeSolver))
+				.collect(Collectors.toSet());
 	}
 
 	@Override
@@ -122,9 +152,18 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public List<ResolvedTypeParameterDeclaration> getTypeParameters() {
-		System.out.println("[Enum] getTypeParameters()");
-		// TODO Auto-generated method stub
-		return new ArrayList<>();
+		if(referenceBinding.isParameterizedType() || referenceBinding.typeVariables().length > 0) {
+			String genericSignature = EcjUtils.getGenericSignature(referenceBinding);
+			try {
+				SignatureAttribute.ClassSignature classSignature = SignatureAttribute.toClassSignature(genericSignature);
+				return Arrays.<SignatureAttribute.TypeParameter> stream(classSignature.getParameters())
+						.map((tp) -> new JavassistTypeParameter(tp, EcjFactory.toTypeDeclaration(referenceBinding, typeSolver), typeSolver))
+						.collect(Collectors.toList());
+			} catch(BadBytecode e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return Collections.emptyList();
 	}
 
 	@Override
@@ -164,8 +203,6 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public SymbolReference<ResolvedMethodDeclaration> solveMethod(String name, List<ResolvedType> argumentsTypes, boolean staticOnly) {
-		System.out.println(" Tyring to solve method " + name + " on " + getClassName());
-
 		List<ResolvedMethodDeclaration> candidates = new ArrayList<>();
 		for(MethodBinding methodBinding : referenceBinding.methods()) {
 			// Ensure name matches
@@ -175,7 +212,6 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 			// TODO: synthetic and bridge??
 			if(methodBinding.isSynthetic() || methodBinding.isBridge()) {
-				System.out.println("Synthetic or bridge");
 				continue;
 			}
 
@@ -187,25 +223,18 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 			if(argumentsTypes.isEmpty() && candidate.getNumberOfParams() == 0) {
 				return SymbolReference.solved(candidate);
 			}
-
-			System.out.println(new String(methodBinding.constantPoolName()) + " -> " + methodBinding);
 		}
 		return MethodResolutionLogic.findMostApplicable(candidates, name, argumentsTypes, typeSolver);
 	}
 
 	@Override
 	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes, Context invocationContext, List<ResolvedType> typeParameters) {
-		System.out.println("[Enum] solveMethodAsUsage(" + name + ", " + argumentTypes + ", ...)");
-		// TODO Auto-generated method stub
+		// TODO Implement solveMethodAsUsage for enum
 		return Optional.empty();
 	}
 
 	@Override
 	public List<ResolvedEnumConstantDeclaration> getEnumConstants() {
-		System.out.println(" ----> Getting enum constants");
-		for(FieldBinding f : referenceBinding.fields()) {
-			System.out.println("\t Field: " + new String(f.readableName()));
-		}
 		return Arrays.stream(referenceBinding.fields())
 				.filter(f -> (f.getAccessFlags() & AccessFlag.ENUM) != 0)
 				.map(f -> new EcjEnumConstantDeclaration(f, typeSolver))

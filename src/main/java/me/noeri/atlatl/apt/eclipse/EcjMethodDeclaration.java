@@ -43,8 +43,7 @@ public class EcjMethodDeclaration implements ResolvedMethodDeclaration, TypeVari
 		// TODO
 		boolean variadic = methodBinding.isVarargs() && i == (methodBinding.parameters.length - 1);
 
-		String paramName = new String(methodBinding.parameterNames[i]);
-		System.out.println("Requesting parameter " + i + ": " + paramName + " (" + (variadic ? "variadic" : "normal") + ")");
+		String paramName = new String(methodBinding.parameters[i].sourceName());
 		// FIXME: Add support for generics, etc...
 		// For now we assume that all parameters are class types
 		return new EcjParameterDeclaration(methodBinding.parameters[i], typeSolver, variadic, paramName);

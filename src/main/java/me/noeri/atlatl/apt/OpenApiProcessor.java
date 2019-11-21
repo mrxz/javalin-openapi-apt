@@ -61,8 +61,8 @@ public class OpenApiProcessor extends AbstractProcessor {
 
 			TypeSolver typeSolver = new CombinedTypeSolver(
 					new ReflectionTypeSolver(true),
-					compilerContext.getTypeSolver(),
-					new JavaParserTypeSolver(sourcePath));
+					new JavaParserTypeSolver(sourcePath),
+					compilerContext.getTypeSolver());
 			AstAnalyze analyzer = new AstAnalyze(typeSolver, new AptReporter(processingEnv));
 			OpenAPI result = analyzer.analyze(sourcePath, routesClass, routesMethod);
 
