@@ -8,14 +8,31 @@ subprojects {
     apply plugin: "java"
     apply plugin: "maven"
     apply plugin: "maven-publish"
-    
+
     group = "me.noeri"
     version = "0.1"
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-    
+
     jar {
         from "LICENSE"
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            maven {
+                url = "https://maven.pkg.github.com/mrxz/javalin-openapi-apt"
+                credentials {
+                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                    password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+                }
+            }
+        }
     }
 }
 
