@@ -1,11 +1,26 @@
-package me.noeri.atlatl.apt.eclipse;
+/*
+ * Copyright 2016 Federico Tomassetti
+ * Copyright 2019 Noeri Huisman; modified to work with ECJ
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package me.noeri.atlatl.apt.eclipse.model;
 
 import com.github.javaparser.ast.AccessSpecifier;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.resolution.MethodUsage;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedEnumConstantDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedEnumDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
@@ -15,8 +30,8 @@ import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.core.resolution.Context;
 import com.github.javaparser.symbolsolver.core.resolution.MethodUsageResolutionCapability;
 import com.github.javaparser.symbolsolver.javassistmodel.JavassistTypeParameter;
-import com.github.javaparser.symbolsolver.logic.AbstractTypeDeclaration;
-import com.github.javaparser.symbolsolver.logic.MethodResolutionCapability;
+import com.github.javaparser.symbolsolver.javassistmodel.JavassistUtilsTrampoline;
+import com.github.javaparser.symbolsolver.logic.AbstractClassDeclaration;
 import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.model.typesystem.ReferenceTypeImpl;
@@ -29,60 +44,79 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javassist.bytecode.AccessFlag;
 import javassist.bytecode.BadBytecode;
 import javassist.bytecode.SignatureAttribute;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
-public class EcjEnumDeclaration extends AbstractTypeDeclaration
-		implements ResolvedEnumDeclaration, MethodResolutionCapability, MethodUsageResolutionCapability {
+public class EcjClassDeclaration extends AbstractClassDeclaration implements MethodUsageResolutionCapability {
 
 	private final ReferenceBinding referenceBinding;
 	private final TypeSolver typeSolver;
 
-	public EcjEnumDeclaration(ReferenceBinding type, TypeSolver typeSolver) {
+	public EcjClassDeclaration(ReferenceBinding type, TypeSolver typeSolver) {
 		this.referenceBinding = type;
 		this.typeSolver = typeSolver;
 	}
 
 	@Override
+	public ResolvedReferenceType getSuperClass() {
+		if(!referenceBinding.isGenericType()) {
+			return new ReferenceTypeImpl(typeSolver.solveType(EcjUtils.getFQN(referenceBinding.superclass())), typeSolver);
+		} else {
+			return new ReferenceTypeImpl(typeSolver.solveType(EcjUtils.getFQN(referenceBinding.superclass())), typeSolver);
+		}
+	}
+
+	@Override
+	public List<ResolvedReferenceType> getInterfaces() {
+		try {
+			if(!referenceBinding.isParameterizedType()) {
+				return Arrays.stream(referenceBinding.superInterfaces())
+						.map(i -> typeSolver.solveType(EcjUtils.getFQN(i)))
+						.map(i -> new ReferenceTypeImpl(i, typeSolver)).collect(Collectors.toList());
+			} else {
+				SignatureAttribute.ClassSignature classSignature = SignatureAttribute
+						.toClassSignature(EcjUtils.getGenericSignature(referenceBinding));
+				return Arrays.stream(classSignature.getInterfaces())
+						.map(i -> JavassistUtilsTrampoline.signatureTypeToType(i, typeSolver, this).asReferenceType())
+						.collect(Collectors.toList());
+			}
+		} catch(BadBytecode e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
 	public List<ResolvedConstructorDeclaration> getConstructors() {
-		// TODO Implement constructors
+		// TODO Support constructors
 		return new ArrayList<>();
 	}
 
 	@Override
 	public List<ResolvedReferenceType> getAncestors(boolean acceptIncompleteList) {
-		// Direct ancestors of an enum are java.lang.Enum and interfaces
 		List<ResolvedReferenceType> ancestors = new ArrayList<>();
-
-		String superClassName = EcjUtils.getFQN(referenceBinding.superclass());
-
-		if(superClassName != null) {
-			try {
-				ancestors.add(new ReferenceTypeImpl(typeSolver.solveType(superClassName), typeSolver));
-			} catch(UnsolvedSymbolException e) {
-				if(!acceptIncompleteList) {
-					// we only throw an exception if we require a complete list;
-					// otherwise, we attempt to continue gracefully
-					throw e;
-				}
+		try {
+			ResolvedReferenceType superClass = getSuperClass();
+			if(superClass != null) {
+				ancestors.add(superClass);
+			}
+		} catch(UnsolvedSymbolException e) {
+			if(!acceptIncompleteList) {
+				// we only throw an exception if we require a complete list;
+				// otherwise, we attempt to continue gracefully
+				throw e;
 			}
 		}
-
-		for(String interfazeName : Arrays.stream(referenceBinding.superInterfaces()).map(EcjUtils::getFQN).collect(Collectors.toList())) {
-			try {
-				ancestors.add(new ReferenceTypeImpl(typeSolver.solveType(interfazeName), typeSolver));
-			} catch(UnsolvedSymbolException e) {
-				if(!acceptIncompleteList) {
-					// we only throw an exception if we require a complete list;
-					// otherwise, we attempt to continue gracefully
-					throw e;
-				}
+		try {
+			ancestors.addAll(getInterfaces());
+		} catch(UnsolvedSymbolException e) {
+			if(!acceptIncompleteList) {
+				// we only throw an exception if we require a complete list;
+				// otherwise, we attempt to continue gracefully
+				throw e;
 			}
 		}
-
 		return ancestors;
 	}
 
@@ -110,12 +144,22 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public boolean isAssignableBy(ResolvedType type) {
-		throw new UnsupportedOperationException();
+		if(type.isNull()) {
+			return true;
+		}
+
+		// TODO look into generics
+		if(type.describe().equals(this.getQualifiedName())) {
+			return true;
+		}
+
+		// TODO: Super classes / interfaces :-/
+		return false;
 	}
 
 	@Override
 	public boolean isAssignableBy(ResolvedReferenceTypeDeclaration other) {
-		throw new UnsupportedOperationException();
+		return isAssignableBy(new ReferenceTypeImpl(other, typeSolver));
 	}
 
 	@Override
@@ -229,21 +273,21 @@ public class EcjEnumDeclaration extends AbstractTypeDeclaration
 
 	@Override
 	public Optional<MethodUsage> solveMethodAsUsage(String name, List<ResolvedType> argumentTypes, Context invocationContext, List<ResolvedType> typeParameters) {
-		// TODO Implement solveMethodAsUsage for enum
-		return Optional.empty();
+		return EcjUtils.getMethodUsage(referenceBinding, name, argumentTypes, typeSolver, getTypeParameters(), typeParameters);
 	}
 
 	@Override
-	public List<ResolvedEnumConstantDeclaration> getEnumConstants() {
-		return Arrays.stream(referenceBinding.fields())
-				.filter(f -> (f.getAccessFlags() & AccessFlag.ENUM) != 0)
-				.map(f -> new EcjEnumConstantDeclaration(f, typeSolver))
-				.collect(Collectors.toList());
+	protected ResolvedReferenceType object() {
+		return new ReferenceTypeImpl(typeSolver.solveType(Object.class.getCanonicalName()), typeSolver);
 	}
 
 	@Override
 	public String toString() {
-		return "EcjEnumDeclaration {" + new String(referenceBinding.readableName()) + "}";
+		return "EcjClassDeclaration {" + new String(referenceBinding.readableName()) + "}";
 	}
 
+	@Override
+	public Optional<Node> toAst() {
+		return Optional.empty();
+	}
 }

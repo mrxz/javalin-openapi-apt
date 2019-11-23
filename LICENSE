@@ -1,0 +1,7 @@
+The project is composed of four parts each with their own license information. Please check the individual projects LICENSE files.
+The following projects are all licensed under the MIT license:
+ * javalin-openapi-annotations
+ * javalin-openapi-core
+ * javalin-openapi-javac
+
+The javaling-openapi-ecj project is licensed under Apache License Version 2.0 as it is heavily based on the javassist model code from Javaparser.

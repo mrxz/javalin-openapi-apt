@@ -1,19 +1,5 @@
-apply plugin: "java"
-apply plugin: "maven"
-apply plugin: "maven-publish"
-
-group = "me.noeri"
-version = "0.1"
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     compile project(':javalin-openapi-annotations')
-    compile files("${System.getProperty('java.home')}/../lib/tools.jar")
 
     compile "com.github.javaparser:javaparser-core:3.15.3"
     compile "com.github.javaparser:javaparser-symbol-solver-core:3.15.3"
@@ -23,9 +9,6 @@ dependencies {
     compile "io.swagger.core.v3:swagger-models:2.0.10"
     compile "com.google.auto.service:auto-service-annotations:1.0-rc6"
 
-    compileOnly "org.eclipse.jdt.core.compiler:ecj:4.6.1"
-    compileOnly "org.eclipse.jdt:org.eclipse.jdt.apt.pluggable.core:1.2.400"
-
     annotationProcessor "com.google.auto.service:auto-service:1.0-rc6"
 
     testCompile "org.hamcrest:hamcrest-core:1.3"
@@ -34,12 +17,6 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-params:5.6.0-M1"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.6.0-M1"
     testCompile "io.javalin:javalin:3.1.0"
-}
-
-task customFatJar(type: Jar) {
-    baseName = 'all-in-one-jar'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
 }
 
 test {

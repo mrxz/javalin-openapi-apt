@@ -1,19 +1,6 @@
-apply plugin: "java"
-apply plugin: "maven"
-apply plugin: "maven-publish"
-
-group = "me.noeri"
-version = "0.1"
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     compile project(':javalin-openapi-core')
-    compile files("${System.getProperty('java.home')}/../lib/tools.jar")
+    compileOnly files("${System.getProperty('java.home')}/../lib/tools.jar")
 
     compile "com.github.javaparser:javaparser-core:3.15.3"
     compile "com.github.javaparser:javaparser-symbol-solver-core:3.15.3"
