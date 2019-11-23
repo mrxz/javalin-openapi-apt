@@ -1,0 +1,5 @@
+rootProject.name = 'javalin-openapi-apt'
+include 'javalin-openapi-annotations'
+include 'javalin-openapi-core'
+include 'javalin-openapi-javac'
+include 'javalin-openapi-ecj'
